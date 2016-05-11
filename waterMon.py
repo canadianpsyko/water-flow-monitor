@@ -130,6 +130,7 @@ if __name__ == '__main__':
 	thisPi = pigpio.pi()
 	thisPi.set_mode(GPIOINPUTPIN, pigpio.INPUT)
 	thisPi.set_pull_up_down(GPIOINPUTPIN, pigpio.PUD_UP)
+	thisPi.set_glitch_filter(GPIOINPUTPIN, 300000)
 	cb = thisPi.callback(GPIOINPUTPIN, pigpio.RISING_EDGE, pi_callback)
 	thisPi.set_mode(GPIORELAYPIN1, pigpio.OUTPUT)
 	#Create schedule list
