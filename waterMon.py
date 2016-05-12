@@ -28,22 +28,10 @@ def db_write():
 
 		
 def pi_callback(gpio, level, tick):
-	"""
-	event = time.time()
-	global debounceTime
-	global lastGood
-	print("Event! at: ", event)
-	if(debounceTime <= event - lastGood):
-		db_write()
-		print("added!")
-		lastGood = event
-		return None
-	print("Too short, debounce")
-	"""
 	global event
 	if event is None:
 		event = time.time()
-		print("Event!: ", event)
+		print("Event!: ", time.strftime("%H:%M:%S",event))
 
 	
 	
@@ -99,23 +87,22 @@ def valve_off():
 	
 	
 
-#temp set constants
+#set constants
 GPIORELAYPIN1 = 4
 GPIORELAYPIN2 = 17
 GPIORELAYPIN3 = 27
 GPIORELAYPIN4 = 22
 GPIOINPUTPIN = 16
+DEBOUNCETIME = 300000
 ONMINUTES = 10
 OUTOFMINUTES = 60
+STARTTIME = '00:00'
+ENDTIME = '06:00'
 DBFILE = "watermon.sqlite"
 #DBTABLE = "events"
 #DBCOLUMN = "date_time"
-
-lastGood = 0.0
-debounceTime = 0.5
+#lastGood = 0.0
 event = None
-STARTTIME = '00:00'
-ENDTIME = '06:00'
 
 
 if __name__ == '__main__':
@@ -130,7 +117,7 @@ if __name__ == '__main__':
 	thisPi = pigpio.pi()
 	thisPi.set_mode(GPIOINPUTPIN, pigpio.INPUT)
 	thisPi.set_pull_up_down(GPIOINPUTPIN, pigpio.PUD_UP)
-	thisPi.set_glitch_filter(GPIOINPUTPIN, 300000)
+	thisPi.set_glitch_filter(GPIOINPUTPIN, DEBOUNCETIME)
 	cb = thisPi.callback(GPIOINPUTPIN, pigpio.RISING_EDGE, pi_callback)
 	thisPi.set_mode(GPIORELAYPIN1, pigpio.OUTPUT)
 	#Create schedule list
