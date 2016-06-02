@@ -5,6 +5,7 @@ Monitor a reed switch for water flow (Gallon per pulse) add each debounced event
 Also have scheduling for a high flow valve with an <open> per <time> when enabled.
 """
 import atexit
+import csv
 import datetime
 import sqlite3
 import time
@@ -17,7 +18,8 @@ def check_gpio_daemon():
 	return true
 
 
-def clean_exit_gpio():
+def clean_exit():
+	valve_off()
 	thisPi.stop()
 	print("See you later!")
 
@@ -31,10 +33,9 @@ def connect_db(db_filename):
 
 def db_export():
 	out = c.execute("SELECT * FROM events")
-	with open('latest.csv', 'w', newline='') as outfile:
-		for i in out:
-			a = out.fetchone()
-			csv.writer(outfile).writerow(a)
+	with open('/home/pi/Desktop/latest.csv', 'w', newline='') as outfile:
+		csv.writer(outfile).writerows(out)
+	print("Output written, enjoy!")
 
 
 def db_write():
@@ -72,8 +73,9 @@ def on_list_gen(startTime, endTime, outOfMinutes):
 def pi_callback(gpio, level, tick):
 	global event
 	if event is None:
-		event = time.time()
-		print("Event!: ", time.strftime("%H:%M:%S",event))
+		event = time.localtime()
+		#print("Event!: ", event)
+
 	
 
 def setSchedule(onList, offList):
@@ -105,6 +107,7 @@ OUTOFMINUTES = 60
 STARTTIME = '00:00'
 ENDTIME = '06:00'
 DBFILE = "watermon.sqlite"
+OUTPUTTIME = "07:00"
 #DBTABLE = "events"
 #DBCOLUMN = "date_time"
 #lastGood = 0.0
@@ -126,13 +129,15 @@ if __name__ == '__main__':
 	thisPi.set_glitch_filter(GPIOINPUTPIN, DEBOUNCETIME)
 	cb = thisPi.callback(GPIOINPUTPIN, pigpio.RISING_EDGE, pi_callback)
 	thisPi.set_mode(GPIORELAYPIN1, pigpio.OUTPUT)
+	#ensure valve closed on start:
+	valve_off()
 	#Create schedule list
 	onList = on_list_gen(STARTTIME, ENDTIME, OUTOFMINUTES)
 	offList = off_list_gen(onList, ONMINUTES)
 	setSchedule(onList, offList)
+	#setup csv output
+	schedule.every().day.at(OUTPUTTIME).do(db_export)
 	#ensure valve is off at exit
-	atexit.register(valve_off)
-	atexit.register(thisPi.stop)
 	atexit.register(conn.close)
 	atexit.register(clean_exit)
 	while 1:
@@ -140,9 +145,6 @@ if __name__ == '__main__':
 		schedule.run_pending()
 		if event is not None:
 			db_write()
-			event = None
+			print("Event from: ", time.strftime("%H:%M:%S", event))
 			print("Event Written! at ", time.strftime("%H:%M:%S", time.localtime()))
-
-
-	
-	
+			event = None
